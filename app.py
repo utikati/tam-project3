@@ -142,17 +142,14 @@ def registar_utilizador():
                 """
 
     values = [content["username"], content["password"]]
-    if verificar_username(content["username"]):
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Utilizador já existe"})
-    else:
-        try:
-            with db_connection() as conn:
-                with conn.cursor() as cursor:
-                    cursor.execute(get_user_info, values)
-            conn.close()
-        except (Exception, psycopg2.DatabaseError) as error:
-            return jsonify({"Code": NOT_FOUND_CODE, "Erro": str(error)})
-        return {"Code": OK_CODE}
+    try:
+        with db_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(get_user_info, values)
+        conn.close()
+    except (Exception, psycopg2.DatabaseError) as error:
+        return jsonify({"Code": NOT_FOUND_CODE, "Erro": str(error)})
+    return {"Code": OK_CODE}
 
 
 ##########################################################
