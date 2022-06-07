@@ -262,7 +262,8 @@ def carregar_saldo():
 
 def db_connection():
 
-    DATABASE_URL = os.environ.get('DATABASE_URL')
+    DATABASE_URL = os.environ.get(
+        'postgres://uefznddxxshgrz:b9870e934cad95992efdad2d0b13fb4247b4f2aad0804a5b051a0545badb947b@ec2-34-247-172-149.eu-west-1.compute.amazonaws.com:5432/de2inhmnpsrf0t')
     db = psycopg2.connect(DATABASE_URL)
     return db
 
