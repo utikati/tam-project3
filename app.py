@@ -53,10 +53,13 @@ def auth_user(func):
             decoded_token = jwt.decode(
                 token, app.config['SECRET_KEY'])
             if(decoded_token["expiration"] < str(datetime.utcnow())):
-                return jsonify({"Erro": "O Token expirou!", "Code": NOT_FOUND_CODE})
+                return jsonify({"Erro": "O Token expirou!", "Code": NOT_FOUND_CODE}), NOT_FOUND_CODE
 
         except Exception as e:
-            return jsonify({'Erro': 'Token inválido', 'Code': FORBIDDEN_CODE})
+            return jsonify({'Erro': 'Token inválido', 'Code': FORBIDDEN_CODE}), FORBIDDEN_CODE
+
+        request.user_id = decoded_token['id']
+
         return func(*args, **kwargs)
     return decorated
 
@@ -69,7 +72,7 @@ def login():
     content = request.get_json()
 
     if "username" not in content or "password" not in content:
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Parâmetros inválidos"})
+        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Parâmetros inválidos"}), BAD_REQUEST_CODE
 
     get_user_info = """
                 SELECT *
@@ -93,8 +96,8 @@ def login():
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
         print(error)
-        return jsonify({"Code": NOT_FOUND_CODE, "Erro": "Utilizador não encontrado"})
-    return jsonify({"Code": OK_CODE, 'Token': token.decode('utf-8')})
+        return jsonify({"Code": NOT_FOUND_CODE, "Erro": "Utilizador não encontrado"}), NOT_FOUND_CODE
+    return jsonify({"Code": OK_CODE, 'Token': token.decode('utf-8')}), OK_CODE
 
 ##########################################################
 # Verificar Existência de Utilizador
@@ -134,9 +137,9 @@ def registar_utilizador():
     username = content["username"]
 
     if "username" not in content or "password" not in content:
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Parâmetros inválidos"})
+        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Parâmetros inválidos"}), BAD_REQUEST_CODE
     if verificar_username(username):
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Utilizador já existe"})
+        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Utilizador já existe"}), BAD_REQUEST_CODE
 
     get_user_info = """
                     INSERT INTO useron(user_name, user_password) 
@@ -150,7 +153,7 @@ def registar_utilizador():
                 cursor.execute(get_user_info, values)
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
-        return jsonify({"Code": NOT_FOUND_CODE, "Erro": str(error)})
+        return jsonify({"Code": NOT_FOUND_CODE, "Erro": str(error)}), NOT_FOUND_CODE
     return {"Code": OK_CODE}
 
 
@@ -251,17 +254,13 @@ def verificar_lista(list_id):
 @app.route("/listas", methods=['GET'])
 @auth_user
 def listas():
-    content = request.get_json()
-    token = content["token"]
-    decoded_token = jwt.decode(token, app.config['SECRET_KEY'])
-
     get_user_info = """
                     SELECT *
                     FROM lists
                     WHERE user_id_user = %s;
                     """
 
-    values = [decoded_token["id"]]
+    values = [request.user_id]
 
     try:
         with db_connection() as conn:
@@ -271,10 +270,10 @@ def listas():
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
         print(error)
-        return jsonify({"Code": NOT_FOUND_CODE, "Erro": str(error)})
+        return jsonify({"Code": NOT_FOUND_CODE, "Erro": str(error)}), NOT_FOUND_CODE
 
     if not rows:
-        return jsonify({"Code": NOT_FOUND_CODE, "Erro": "Não existem listas"})
+        return jsonify({"Code": NOT_FOUND_CODE, "Erro": "Não existem listas"}), NOT_FOUND_CODE
 
     return jsonify({"Code": OK_CODE, "Listas": rows})
 
@@ -286,12 +285,10 @@ def listas():
 @auth_user
 def inserir_lista():
     content = request.get_json()
-    token = content["token"]
-    decoded_token = jwt.decode(token, app.config['SECRET_KEY'])
-    user_id = decoded_token["id"]
+    user_id = request.user_id
 
     if "list_name" not in content:
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Parâmetros inválidos"})
+        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Parâmetros inválidos"}), BAD_REQUEST_CODE
 
     get_user_info = """
                     INSERT INTO lists(user_id_user, list_name) 
@@ -305,7 +302,7 @@ def inserir_lista():
                 cursor.execute(get_user_info, values)
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
-        return jsonify({"Code": NOT_FOUND_CODE, "Erro": str(error)})
+        return jsonify({"Code": NOT_FOUND_CODE, "Erro": str(error)}), NOT_FOUND_CODE
     return {"Code": OK_CODE}
 ####################################
 
@@ -315,14 +312,11 @@ def inserir_lista():
 @app.route("/listas/<int:list_id>", methods=['DELETE'])
 @auth_user
 def apagar_lista(list_id):
-    content = request.get_json()
-    token = content["token"]
-    decoded_token = jwt.decode(token, app.config['SECRET_KEY'])
-    user_id = decoded_token["id"]
+    user_id = request.user_id
     if verificar_tarefas_lista(list_id):
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Lista não pode ser apagada"})
+        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Lista não pode ser apagada"}), BAD_REQUEST_CODE
     if verificar_lista(list_id):
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Lista não existe"})
+        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Lista não existe"}), BAD_REQUEST_CODE
     get_user_info = """
                     DELETE FROM lists
                     WHERE user_id_user = %s AND id_list = %s;
@@ -335,7 +329,7 @@ def apagar_lista(list_id):
                 cursor.execute(get_user_info, values)
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
-        return jsonify({"Code": NOT_FOUND_CODE, "Erro": str(error)})
+        return jsonify({"Code": NOT_FOUND_CODE, "Erro": str(error)}), NOT_FOUND_CODE
     return {"Code": OK_CODE}
 
 ############################################
@@ -346,14 +340,12 @@ def apagar_lista(list_id):
 @auth_user
 def actualizar_lista(list_id):
     content = request.get_json()
-    token = content["token"]
-    decoded_token = jwt.decode(token, app.config['SECRET_KEY'])
-    user_id = decoded_token["id"]
+    user_id = request.user_id
 
     if "list_name" not in content:
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Parâmetros inválidos"})
+        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Parâmetros inválidos"}), BAD_REQUEST_CODE
     if verificar_lista(list_id):
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Lista não existe"})
+        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Lista não existe"}), BAD_REQUEST_CODE
 
     get_user_info = """
                     UPDATE lists
@@ -368,7 +360,7 @@ def actualizar_lista(list_id):
                 cursor.execute(get_user_info, values)
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
-        return jsonify({"Code": NOT_FOUND_CODE, "Erro": str(error)})
+        return jsonify({"Code": NOT_FOUND_CODE, "Erro": str(error)}), NOT_FOUND_CODE
     return {"Code": OK_CODE}
 
 ###################################################################
@@ -382,15 +374,12 @@ def actualizar_lista(list_id):
 @app.route("/listas/<int:list_id>/tarefas", methods=['GET'])
 @auth_user
 def tarefas_lista(list_id):
-    content = request.get_json()
-    token = content["token"]
-    decoded_token = jwt.decode(token, app.config['SECRET_KEY'])
-    user_id = decoded_token["id"]
+    user_id = request.user_id
 
     if verificar_lista(list_id):
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Lista não existe"})
+        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Lista não existe"}), BAD_REQUEST_CODE
     if acesso_lista(list_id, user_id):
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Acesso negado"})
+        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Acesso negado"}), BAD_REQUEST_CODE
 
     get_user_info = """
                     SELECT id_task, description, deadline, stateontime, concluded, checkhour, lists_id_list
@@ -408,10 +397,10 @@ def tarefas_lista(list_id):
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
         print(error)
-        return jsonify({"Code": NOT_FOUND_CODE, "Erro": str(error)})
+        return jsonify({"Code": NOT_FOUND_CODE, "Erro": str(error)}), NOT_FOUND_CODE
 
     if not rows:
-        return jsonify({"Code": NOT_FOUND_CODE, "Erro": "Não existem tarefas"})
+        return jsonify({"Code": NOT_FOUND_CODE, "Erro": "Não existem tarefas"}), NOT_FOUND_CODE
 
     return jsonify({"Code": OK_CODE, "Tarefas": rows})
 
@@ -423,16 +412,14 @@ def tarefas_lista(list_id):
 @auth_user
 def inserir_tarefa(list_id):
     content = request.get_json()
-    token = content["token"]
-    decoded_token = jwt.decode(token, app.config['SECRET_KEY'])
-    user_id = decoded_token["id"]
+    user_id = request.user_id
 
     if "task_description" not in content or "task_deadline" not in content or "task_stateontime" not in content or "task_concluded" not in content or "task_checkhour" not in content:
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Parâmetros inválidos"})
+        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Parâmetros inválidos"}), BAD_REQUEST_CODE
     if verificar_lista(list_id):
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Lista não existe"})
+        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Lista não existe"}), BAD_REQUEST_CODE
     if acesso_lista(list_id, user_id):
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Acesso negado"})
+        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Acesso negado"}), BAD_REQUEST_CODE
 
     get_user_info = """
                     INSERT INTO tasks(description, deadline, stateontime, concluded, checkhour, lists_id_list) 
@@ -447,7 +434,7 @@ def inserir_tarefa(list_id):
                 cursor.execute(get_user_info, values)
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
-        return jsonify({"Code": NOT_FOUND_CODE, "Erro": str(error)})
+        return jsonify({"Code": NOT_FOUND_CODE, "Erro": str(error)}), NOT_FOUND_CODE
     return {"Code": OK_CODE}
 
 ################################################################
@@ -457,10 +444,8 @@ def inserir_tarefa(list_id):
 @app.route("/listas/tarefas", methods=['GET'])
 @auth_user
 def tarefas_user():
-    content = request.get_json()
-    token = content["token"]
-    decoded_token = jwt.decode(token, app.config['SECRET_KEY'])
-    user_id = decoded_token["id"]
+
+    user_id = request.user_id
 
     get_user_info = """
                     SELECT *
@@ -478,10 +463,10 @@ def tarefas_user():
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
         print(error)
-        return jsonify({"Code": NOT_FOUND_CODE, "Erro": str(error)})
+        return jsonify({"Code": NOT_FOUND_CODE, "Erro": str(error)}), NOT_FOUND_CODE
 
     if not rows:
-        return jsonify({"Code": NOT_FOUND_CODE, "Erro": "Não existem tarefas"})
+        return jsonify({"Code": NOT_FOUND_CODE, "Erro": "Não existem tarefas"}), NOT_FOUND_CODE
 
     return jsonify({"Code": OK_CODE, "Tarefas": rows})
 
@@ -493,17 +478,15 @@ def tarefas_user():
 @auth_user
 def actualizar_tarefa(list_id, task_id):
     content = request.get_json()
-    token = content["token"]
-    decoded_token = jwt.decode(token, app.config['SECRET_KEY'])
-    user_id = decoded_token["id"]
+    user_id = request.user_id
 
     if verificar_lista(list_id):
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Lista não existe"})
+        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Lista não existe"}), BAD_REQUEST_CODE
     if acesso_lista(list_id, user_id):
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Acesso negado"})
+        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Acesso negado"}), BAD_REQUEST_CODE
 
     if "task_description" not in content:
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Parâmetros inválidos"})
+        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Parâmetros inválidos"}), BAD_REQUEST_CODE
 
     get_user_info = """
                     UPDATE tasks
@@ -519,7 +502,7 @@ def actualizar_tarefa(list_id, task_id):
                 cursor.execute(get_user_info, values)
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
-        return jsonify({"Code": NOT_FOUND_CODE, "Erro": str(error)})
+        return jsonify({"Code": NOT_FOUND_CODE, "Erro": str(error)}), NOT_FOUND_CODE
     return {"Code": OK_CODE}
 
 ############################################################
@@ -530,14 +513,12 @@ def actualizar_tarefa(list_id, task_id):
 @auth_user
 def eliminar_tarefa(list_id, task_id):
     content = request.get_json()
-    token = content["token"]
-    decoded_token = jwt.decode(token, app.config['SECRET_KEY'])
-    user_id = decoded_token["id"]
+    user_id = request.user_id
 
     if verificar_lista(list_id):
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Lista não existe"})
+        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Lista não existe"}), BAD_REQUEST_CODE
     if acesso_lista(list_id, user_id):
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Acesso negado"})
+        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Acesso negado"}), BAD_REQUEST_CODE
 
     get_user_info = """
                     DELETE FROM tasks
@@ -550,7 +531,7 @@ def eliminar_tarefa(list_id, task_id):
                 cursor.execute(get_user_info, values)
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
-        return jsonify({"Code": NOT_FOUND_CODE, "Erro": str(error)})
+        return jsonify({"Code": NOT_FOUND_CODE, "Erro": str(error)}), NOT_FOUND_CODE
     return {"Code": OK_CODE}
 
 
