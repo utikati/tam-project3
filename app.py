@@ -287,11 +287,7 @@ def inserir_lista():
     content = request.get_json()
     user_id = request.user_id
 
-    print("Printar o conteudo da nome lista : "+content["list_name"])
-    print("printar o id de user "+user_id)
-
     if "list_name" not in content:
-        print("Entrou nos parametros inválidos")
         return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Parâmetros inválidos"}), BAD_REQUEST_CODE
 
     get_user_info = """
