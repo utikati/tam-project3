@@ -53,10 +53,10 @@ def auth_user(func):
             decoded_token = jwt.decode(
                 token, app.config['SECRET_KEY'])
             if(decoded_token["expiration"] < str(datetime.utcnow())):
-                return jsonify({"Erro": "O Token expirou!", "Code": NOT_FOUND_CODE}), NOT_FOUND_CODE
+                return jsonify({"Erro": "O Token expirou!"}), NOT_FOUND
 
         except Exception as e:
-            return jsonify({'Erro': 'Token inválido', 'Code': FORBIDDEN_CODE}), FORBIDDEN_CODE
+            return jsonify({'Erro': 'Token inválido'}), FORBIDDEN_CODE
 
         request.user_id = decoded_token['id']
 
@@ -72,7 +72,7 @@ def login():
     content = request.get_json()
 
     if "username" not in content or "password" not in content:
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Parâmetros inválidos"}), BAD_REQUEST_CODE
+        return jsonify({"Erro": "Parâmetros inválidos"}), BAD_REQUEST_CODE
 
     get_user_info = """
                 SELECT *
@@ -81,13 +81,13 @@ def login():
                 """
 
     values = [content["username"], content["password"]]
-
+    # timedelta(hours=1)
     try:
         with db_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute(get_user_info, values)
                 rows = cursor.fetchall()
-                print(rows)
+
                 token = jwt.encode({
                     'id': rows[0][0],
                     'username': rows[0][1],
@@ -96,8 +96,8 @@ def login():
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
         print(error)
-        return jsonify({"Code": NOT_FOUND_CODE, "Erro": "Utilizador não encontrado"}), NOT_FOUND_CODE
-    return jsonify({"Code": OK_CODE, 'Token': token.decode('utf-8')}), OK_CODE
+        return jsonify({"Erro": "Utilizador não encontrado"}), NOT_FOUND_CODE
+    return jsonify({'Token': token.decode('utf-8')}), OK_CODE
 
 ##########################################################
 # Verificar Existência de Utilizador
@@ -137,9 +137,9 @@ def registar_utilizador():
     username = content["username"]
 
     if "username" not in content or "password" not in content:
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Parâmetros inválidos"}), BAD_REQUEST_CODE
+        return jsonify({"Erro": "Parâmetros inválidos"}), BAD_REQUEST_CODE
     if verificar_username(username):
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Utilizador já existe"}), BAD_REQUEST_CODE
+        return jsonify({"Erro": "Utilizador já existe"}), BAD_REQUEST_CODE
 
     get_user_info = """
                     INSERT INTO useron(user_name, user_password) 
@@ -153,8 +153,8 @@ def registar_utilizador():
                 cursor.execute(get_user_info, values)
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
-        return jsonify({"Code": NOT_FOUND_CODE, "Erro": str(error)}), NOT_FOUND_CODE
-    return {"Code": OK_CODE}
+        return jsonify({"Erro": str(error)}), NOT_FOUND_CODE
+    return {}, OK_CODE
 
 
 ##########################################################
@@ -270,12 +270,17 @@ def listas():
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
         print(error)
-        return jsonify({"Code": NOT_FOUND_CODE, "Erro": str(error)}), NOT_FOUND_CODE
+        return jsonify({"Erro": str(error)}), NOT_FOUND_CODE
 
     if not rows:
-        return jsonify({"Code": NOT_FOUND_CODE, "Erro": "Não existem listas"}), NOT_FOUND_CODE
+        return jsonify({"Erro": "Não existem listas"}), NOT_FOUND_CODE
 
-    return jsonify({"Code": OK_CODE, "Listas": rows})
+    Listas = []
+    for row in rows:
+        Listas.append(
+            {"id_list": row[0], "list_name": row[1], "user_id_user": row[2]})
+
+    return jsonify(Listas), OK_CODE
 
 ########################################################
 # Inserir lista
@@ -288,7 +293,7 @@ def inserir_lista():
     user_id = request.user_id
 
     if "list_name" not in content:
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Parâmetros inválidos"}), BAD_REQUEST_CODE
+        return jsonify({"Erro": "Parâmetros inválidos"}), BAD_REQUEST_CODE
 
     get_user_info = """
                     INSERT INTO lists(user_id_user, list_name) 
@@ -302,8 +307,8 @@ def inserir_lista():
                 cursor.execute(get_user_info, values)
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
-        return jsonify({"Code": NOT_FOUND_CODE, "Erro": str(error)}), NOT_FOUND_CODE
-    return {"Code": OK_CODE}
+        return jsonify({"Erro": str(error)}), NOT_FOUND_CODE
+    return {}, OK_CODE
 ####################################
 
 # Apagar lista
@@ -314,9 +319,9 @@ def inserir_lista():
 def apagar_lista(list_id):
     user_id = request.user_id
     if verificar_tarefas_lista(list_id):
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Lista não pode ser apagada"}), BAD_REQUEST_CODE
+        return jsonify({"Erro": "Lista não pode ser apagada"}), BAD_REQUEST_CODE
     if verificar_lista(list_id):
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Lista não existe"}), BAD_REQUEST_CODE
+        return jsonify({"Erro": "Lista não existe"}), BAD_REQUEST_CODE
     get_user_info = """
                     DELETE FROM lists
                     WHERE user_id_user = %s AND id_list = %s;
@@ -329,8 +334,8 @@ def apagar_lista(list_id):
                 cursor.execute(get_user_info, values)
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
-        return jsonify({"Code": NOT_FOUND_CODE, "Erro": str(error)}), NOT_FOUND_CODE
-    return {"Code": OK_CODE}
+        return jsonify({"Erro": str(error)}), NOT_FOUND_CODE
+    return {}, OK_CODE
 
 ############################################
 # Actualizar lista
@@ -343,9 +348,9 @@ def actualizar_lista(list_id):
     user_id = request.user_id
 
     if "list_name" not in content:
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Parâmetros inválidos"}), BAD_REQUEST_CODE
+        return jsonify({"Erro": "Parâmetros inválidos"}), BAD_REQUEST_CODE
     if verificar_lista(list_id):
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Lista não existe"}), BAD_REQUEST_CODE
+        return jsonify({"Erro": "Lista não existe"}), BAD_REQUEST_CODE
 
     get_user_info = """
                     UPDATE lists
@@ -360,8 +365,8 @@ def actualizar_lista(list_id):
                 cursor.execute(get_user_info, values)
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
-        return jsonify({"Code": NOT_FOUND_CODE, "Erro": str(error)}), NOT_FOUND_CODE
-    return {"Code": OK_CODE}
+        return jsonify({"Erro": str(error)}), NOT_FOUND_CODE
+    return {}, OK_CODE
 
 ###################################################################
 # TAREFAS
@@ -377,12 +382,12 @@ def tarefas_lista(list_id):
     user_id = request.user_id
 
     if verificar_lista(list_id):
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Lista não existe"}), BAD_REQUEST_CODE
+        return jsonify({"Erro": "Lista não existe"}), BAD_REQUEST_CODE
     if acesso_lista(list_id, user_id):
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Acesso negado"}), BAD_REQUEST_CODE
+        return jsonify({"Erro": "Acesso negado"}), BAD_REQUEST_CODE
 
     get_user_info = """
-                    SELECT id_task, description, deadline, stateontime, concluded, checkhour, lists_id_list
+                    SELECT id_task, description, deadline, stateontime, concluded, checkhour, lists_id_list, tasks.listname
                     FROM tasks, lists
                     WHERE tasks.lists_id_list = %s AND tasks.lists_id_list = lists.id_list AND lists.user_id_user = %s;
                     """
@@ -397,12 +402,18 @@ def tarefas_lista(list_id):
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
         print(error)
-        return jsonify({"Code": NOT_FOUND_CODE, "Erro": str(error)}), NOT_FOUND_CODE
+        return jsonify({"Erro": str(error)}), NOT_FOUND_CODE
 
     if not rows:
-        return jsonify({"Code": NOT_FOUND_CODE, "Erro": "Não existem tarefas"}), NOT_FOUND_CODE
+        return jsonify({"Erro": "Não existem tarefas"}), NOT_FOUND_CODE
 
-    return jsonify({"Code": OK_CODE, "Tarefas": rows})
+    Listas = []
+
+    for row in rows:
+        Listas.append(
+            {"id_task": row[0], "description": row[1], "deadline": row[2], "stateontime": row[3], "concluded": row[4], "checkhour": row[5], "lists_id_list": row[6], "listname": row[7]})
+
+    return jsonify(Listas), OK_CODE
 
 ###########################################
 # Inserir tarefa
@@ -414,28 +425,29 @@ def inserir_tarefa(list_id):
     content = request.get_json()
     user_id = request.user_id
 
-    if "task_description" not in content or "task_deadline" not in content or "task_stateontime" not in content or "task_concluded" not in content or "task_checkhour" not in content:
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Parâmetros inválidos"}), BAD_REQUEST_CODE
+    if "description" not in content or "deadline" not in content or "concluded" not in content or "checkhour" not in content:
+        return jsonify({"Erro": "Parâmetros inválidos"}), BAD_REQUEST_CODE
     if verificar_lista(list_id):
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Lista não existe"}), BAD_REQUEST_CODE
+        return jsonify({"Erro": "Lista não existe"}), BAD_REQUEST_CODE
     if acesso_lista(list_id, user_id):
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Acesso negado"}), BAD_REQUEST_CODE
+
+        return jsonify({"Erro": "Acesso negado"}), BAD_REQUEST_CODE
 
     get_user_info = """
-                    INSERT INTO tasks(description, deadline, stateontime, concluded, checkhour, lists_id_list) 
-                    VALUES(%s, %s, %s, %s, %s, %s);
+                    INSERT INTO tasks(description, deadline, stateontime, concluded, checkhour, lists_id_list, listname) 
+                    VALUES(%s, %s, %s, %s, %s, %s, %s);
                     """
 
-    values = [content["task_description"], content["task_deadline"],
-              content["task_stateontime"], content["task_concluded"], content["task_checkhour"], list_id]
+    values = [content["description"], content["deadline"],
+              content["stateontime"], content["concluded"], content["checkhour"], list_id, content["listname"]]
     try:
         with db_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute(get_user_info, values)
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
-        return jsonify({"Code": NOT_FOUND_CODE, "Erro": str(error)}), NOT_FOUND_CODE
-    return {"Code": OK_CODE}
+        return jsonify({"Erro": str(error)}), NOT_FOUND_CODE
+    return {}, OK_CODE
 
 ################################################################
 # Todas tarefas do utilizador
@@ -463,12 +475,18 @@ def tarefas_user():
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
         print(error)
-        return jsonify({"Code": NOT_FOUND_CODE, "Erro": str(error)}), NOT_FOUND_CODE
+        return jsonify({"Erro": str(error)}), NOT_FOUND_CODE
 
     if not rows:
-        return jsonify({"Code": NOT_FOUND_CODE, "Erro": "Não existem tarefas"}), NOT_FOUND_CODE
+        return jsonify({"Erro": "Não existem tarefas"}), NOT_FOUND_CODE
 
-    return jsonify({"Code": OK_CODE, "Tarefas": rows})
+    Listas = []
+
+    for row in rows:
+        Listas.append(
+            {"id_task": row[0], "description": row[1], "deadline": row[2], "stateontime": row[3], "concluded": row[4], "checkhour": row[5], "lists_id_list": row[6], "listname": row[7]})
+
+    return jsonify(Listas), OK_CODE
 
 #####################################################################################
 # Actualizar tarefa
@@ -481,29 +499,46 @@ def actualizar_tarefa(list_id, task_id):
     user_id = request.user_id
 
     if verificar_lista(list_id):
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Lista não existe"}), BAD_REQUEST_CODE
+        return jsonify({"Erro": "Lista não existe"}), BAD_REQUEST_CODE
     if acesso_lista(list_id, user_id):
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Acesso negado"}), BAD_REQUEST_CODE
+        return jsonify({"Erro": "Acesso negado"}), BAD_REQUEST_CODE
 
-    if "task_description" not in content:
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Parâmetros inválidos"}), BAD_REQUEST_CODE
+    if "description" not in content:
+        print("description")
+        return jsonify({"Erro": "Parâmetros inválidos"}), BAD_REQUEST_CODE
+
+    if "deadline" not in content:
+        print("deadline")
+        return jsonify({"Erro": "Parâmetros inválidos"}), BAD_REQUEST_CODE
+
+    if "stateontime" not in content:
+        print("stateontime")
+        return jsonify({"Erro": "Parâmetros inválidos"}), BAD_REQUEST_CODE
+
+    if "concluded" not in content:
+        print("concluded")
+        return jsonify({"Erro": "Parâmetros inválidos"}), BAD_REQUEST_CODE
+
+    if "checkhour" not in content:
+        print("checkhour")
+        return jsonify({"Erro": "Parâmetros inválidos"}), BAD_REQUEST_CODE
 
     get_user_info = """
                     UPDATE tasks
-                    SET description = %s, deadline = %s, stateontime = %s, concluded = %s, checkhour = %s
+                    SET description = %s, deadline = %s, stateontime = %s, concluded = %s, checkhour = %s, listname = %s
                     WHERE id_task = %s;
                     """
 
-    values = [content["task_description"], content["task_deadline"],
-              content["task_stateontime"], content["task_concluded"], content["task_checkhour"], task_id]
+    values = [content["description"], content["deadline"],
+              content["stateontime"], content["concluded"], content["checkhour"], content["listname"], task_id]
     try:
         with db_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute(get_user_info, values)
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
-        return jsonify({"Code": NOT_FOUND_CODE, "Erro": str(error)}), NOT_FOUND_CODE
-    return {"Code": OK_CODE}
+        return jsonify({"Erro": str(error)}), NOT_FOUND_CODE
+    return {}, OK_CODE
 
 ############################################################
 # Eliminar tarefa
@@ -512,13 +547,12 @@ def actualizar_tarefa(list_id, task_id):
 @app.route("/listas/<int:list_id>/tarefas/<int:task_id>", methods=['DELETE'])
 @auth_user
 def eliminar_tarefa(list_id, task_id):
-    content = request.get_json()
     user_id = request.user_id
 
     if verificar_lista(list_id):
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Lista não existe"}), BAD_REQUEST_CODE
+        return jsonify({"Erro": "Lista não existe"}), BAD_REQUEST_CODE
     if acesso_lista(list_id, user_id):
-        return jsonify({"Code": BAD_REQUEST_CODE, "Erro": "Acesso negado"}), BAD_REQUEST_CODE
+        return jsonify({"Erro": "Acesso negado"}), BAD_REQUEST_CODE
 
     get_user_info = """
                     DELETE FROM tasks
@@ -531,8 +565,8 @@ def eliminar_tarefa(list_id, task_id):
                 cursor.execute(get_user_info, values)
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
-        return jsonify({"Code": NOT_FOUND_CODE, "Erro": str(error)}), NOT_FOUND_CODE
-    return {"Code": OK_CODE}
+        return jsonify({"Erro": str(error)}), NOT_FOUND_CODE
+    return {}, OK_CODE
 
 
 ##########################################################
