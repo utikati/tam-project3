@@ -96,6 +96,7 @@ def login():
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
         print(error)
+        conn.close()
         return jsonify({"Erro": "Utilizador não encontrado"}), NOT_FOUND_CODE
     return jsonify({'Token': token.decode('utf-8')}), OK_CODE
 
@@ -118,6 +119,7 @@ def verificar_username(username):
                 rows = cursor.fetchall()
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
+        conn.close()
         print(error)
         return 0
 
@@ -153,6 +155,8 @@ def registar_utilizador():
                 cursor.execute(get_user_info, values)
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
+        conn.close()
+        print(error)
         return jsonify({"Erro": str(error)}), NOT_FOUND_CODE
     return {}, OK_CODE
 
@@ -178,6 +182,7 @@ def acesso_lista(lista_id, user_id):
                 rows = cursor.fetchall()
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
+        conn.close()
         print(error)
         return True
 
@@ -194,7 +199,7 @@ def verificar_tarefas_lista(list_id):
     get_user_info = """
                     SELECT COUNT(*)
                     FROM tasks
-                    WHERE list_id = %s;
+                    WHERE lists_id_list = %s;
                     """
 
     values = [list_id]
@@ -206,6 +211,7 @@ def verificar_tarefas_lista(list_id):
                 rows = cursor.fetchall()
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
+        conn.close()
         print(error)
         return False
 
@@ -237,6 +243,7 @@ def verificar_lista(list_id):
                 rows = cursor.fetchall()
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
+        conn.close()
         print(error)
         return True
 
@@ -269,6 +276,7 @@ def listas():
                 rows = cursor.fetchall()
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
+        conn.close()
         print(error)
         return jsonify({"Erro": str(error)}), NOT_FOUND_CODE
 
@@ -307,6 +315,7 @@ def inserir_lista():
                 cursor.execute(get_user_info, values)
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
+        conn.close()
         return jsonify({"Erro": str(error)}), NOT_FOUND_CODE
     return {}, OK_CODE
 ####################################
@@ -319,8 +328,10 @@ def inserir_lista():
 def apagar_lista(list_id):
     user_id = request.user_id
     if verificar_tarefas_lista(list_id):
+
         return jsonify({"Erro": "Lista não pode ser apagada"}), BAD_REQUEST_CODE
     if verificar_lista(list_id):
+
         return jsonify({"Erro": "Lista não existe"}), BAD_REQUEST_CODE
     get_user_info = """
                     DELETE FROM lists
@@ -334,6 +345,7 @@ def apagar_lista(list_id):
                 cursor.execute(get_user_info, values)
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
+        conn.close()
         return jsonify({"Erro": str(error)}), NOT_FOUND_CODE
     return {}, OK_CODE
 
@@ -365,6 +377,7 @@ def actualizar_lista(list_id):
                 cursor.execute(get_user_info, values)
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
+        conn.close()
         return jsonify({"Erro": str(error)}), NOT_FOUND_CODE
     return {}, OK_CODE
 
@@ -401,6 +414,7 @@ def tarefas_lista(list_id):
                 rows = cursor.fetchall()
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
+        conn.close()
         print(error)
         return jsonify({"Erro": str(error)}), NOT_FOUND_CODE
 
@@ -446,6 +460,7 @@ def inserir_tarefa(list_id):
                 cursor.execute(get_user_info, values)
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
+        conn.close()
         return jsonify({"Erro": str(error)}), NOT_FOUND_CODE
     return {}, OK_CODE
 
@@ -474,6 +489,7 @@ def tarefas_user():
                 rows = cursor.fetchall()
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
+        conn.close()
         print(error)
         return jsonify({"Erro": str(error)}), NOT_FOUND_CODE
 
@@ -537,6 +553,7 @@ def actualizar_tarefa(list_id, task_id):
                 cursor.execute(get_user_info, values)
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
+        conn.close()
         return jsonify({"Erro": str(error)}), NOT_FOUND_CODE
     return {}, OK_CODE
 
@@ -565,6 +582,7 @@ def eliminar_tarefa(list_id, task_id):
                 cursor.execute(get_user_info, values)
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
+        conn.close()
         return jsonify({"Erro": str(error)}), NOT_FOUND_CODE
     return {}, OK_CODE
 
