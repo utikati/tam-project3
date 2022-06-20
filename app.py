@@ -158,7 +158,7 @@ def registar_utilizador():
         conn.close()
         print(error)
         return jsonify({"Erro": str(error)}), NOT_FOUND_CODE
-    return {}, OK_CODE
+    return {}, SUCCESS_CODE
 
 
 ##########################################################
@@ -256,7 +256,7 @@ def verificar_lista(list_id):
         return False
 
 
-#####################################################
+#############################################################################################
 # Lista de todas as listas
 @app.route("/listas", methods=['GET'])
 @auth_user
