@@ -317,7 +317,7 @@ def inserir_lista():
     except (Exception, psycopg2.DatabaseError) as error:
         conn.close()
         return jsonify({"Erro": str(error)}), NOT_FOUND_CODE
-    return {}, OK_CODE
+    return {}, SUCCESS_CODE
 ####################################
 
 # Apagar lista
@@ -462,7 +462,7 @@ def inserir_tarefa(list_id):
     except (Exception, psycopg2.DatabaseError) as error:
         conn.close()
         return jsonify({"Erro": str(error)}), NOT_FOUND_CODE
-    return {}, OK_CODE
+    return {}, SUCCESS_CODE
 
 ################################################################
 # Todas tarefas do utilizador
