@@ -92,7 +92,7 @@ def login():
                 token = jwt.encode({
                     'id': rows[0][0],
                     'username': rows[0][1],
-                    'expiration': str(datetime.utcnow() + timedelta(minutes=1))
+                    'expiration': str(datetime.utcnow() + timedelta(seconds=10))
                 }, app.config['SECRET_KEY'])
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
