@@ -22,7 +22,7 @@ import os
 
 app = Flask(__name__)
 
-app.config['SECRET_KEY'] = 'it\xb5u\xc3\xaf\xc1Q\xb9\n\x92W\tB\xe4\xfe__\x87\x8c}\xe9\x1e\xb8\x0f'
+app.config['SECRET_KEY'] = os.environ.get('SECRET')
 
 NOT_FOUND_CODE = 400
 OK_CODE = 200
@@ -594,8 +594,12 @@ def eliminar_tarefa(list_id, task_id):
 
 def db_connection():
 
-    db = psycopg2.connect(host="ec2-34-247-172-149.eu-west-1.compute.amazonaws.com", database="de2inhmnpsrf0t",
-                          user="uefznddxxshgrz", password="b9870e934cad95992efdad2d0b13fb4247b4f2aad0804a5b051a0545badb947b",)
+    DATABASE_URL = os.environ.get('DATABASE_URL')
+
+    # host="ec2-34-247-172-149.eu-west-1.compute.amazonaws.com", database="de2inhmnpsrf0t",
+    # user="uefznddxxshgrz", password="b9870e934cad95992efdad2d0b13fb4247b4f2aad0804a5b051a0545badb947b"
+
+    db = psycopg2.connect(DATABASE_URL)
     return db
 
 
