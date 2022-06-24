@@ -32,6 +32,7 @@ UNAUTHORIZED_CODE = 401
 FORBIDDEN_CODE = 403
 NOT_FOUND = 404
 SERVER_ERROR = 500
+TOKEN_EXPIRED = 498
 
 
 @app.route('/', methods=["GET"])
@@ -53,7 +54,7 @@ def auth_user(func):
             decoded_token = jwt.decode(
                 token, app.config['SECRET_KEY'])
             if(decoded_token["expiration"] < str(datetime.utcnow())):
-                return jsonify({"Erro": "O Token expirou!"}), NOT_FOUND
+                return jsonify({"Erro": "O Token expirou!"}), TOKEN_EXPIRED
 
         except Exception as e:
             return jsonify({'Erro': 'Token inválido'}), FORBIDDEN_CODE
@@ -81,7 +82,7 @@ def login():
                 """
 
     values = [content["username"], content["password"]]
-    # timedelta(hours=1)
+
     try:
         with db_connection() as conn:
             with conn.cursor() as cursor:
@@ -91,7 +92,7 @@ def login():
                 token = jwt.encode({
                     'id': rows[0][0],
                     'username': rows[0][1],
-                    'expiration': str(datetime.utcnow() + timedelta(hours=1))
+                    'expiration': str(datetime.utcnow() + timedelta(minutes=1))
                 }, app.config['SECRET_KEY'])
         conn.close()
     except (Exception, psycopg2.DatabaseError) as error:
