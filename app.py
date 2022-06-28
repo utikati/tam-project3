@@ -329,11 +329,11 @@ def inserir_lista():
 def apagar_lista(list_id):
     user_id = request.user_id
     if verificar_tarefas_lista(list_id):
-
         return jsonify({"Erro": "Lista não pode ser apagada"}), BAD_REQUEST_CODE
     if verificar_lista(list_id):
-
         return jsonify({"Erro": "Lista não existe"}), BAD_REQUEST_CODE
+    if acesso_lista(list_id, user_id):
+        return jsonify({"Erro": "Lista não tem acesso"}), BAD_REQUEST_CODE
     get_user_info = """
                     DELETE FROM lists
                     WHERE user_id_user = %s AND id_list = %s;
@@ -364,6 +364,8 @@ def actualizar_lista(list_id):
         return jsonify({"Erro": "Parâmetros inválidos"}), BAD_REQUEST_CODE
     if verificar_lista(list_id):
         return jsonify({"Erro": "Lista não existe"}), BAD_REQUEST_CODE
+    if acesso_lista(list_id, user_id):
+        return jsonify({"Erro": "Lista não tem acesso"}), BAD_REQUEST_CODE
 
     get_user_info = """
                     UPDATE lists
@@ -445,7 +447,6 @@ def inserir_tarefa(list_id):
     if verificar_lista(list_id):
         return jsonify({"Erro": "Lista não existe"}), BAD_REQUEST_CODE
     if acesso_lista(list_id, user_id):
-
         return jsonify({"Erro": "Acesso negado"}), BAD_REQUEST_CODE
 
     get_user_info = """
